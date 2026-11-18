@@ -1,0 +1,24 @@
+[project]
+name = "drive"
+dynamic = ["version"]
+description = "Self-hosted files and folders with share links, your own free take on Google Drive"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["flask==3.1.3", "waitress==3.0.2", "pillow==13.0.0", "pillow-heif==1.8.1",
+                "cryptography==50.0.2"]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1", "wsgidav==4.4.0"]
+
+[tool.setuptools.dynamic]
+version = { attr = "drive.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["drive*"]
+
+[tool.setuptools.package-data]
+drive = ["static/*", "static/fonts/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]

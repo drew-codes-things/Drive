@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#19191c">
+<title>Drive</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+<script src="/static/convert.js" defer></script>
+<script src="/static/sync.js" defer></script>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/" aria-label="Drive home">
+    <img src="/static/icon.svg" alt="" width="28" height="28">
+    <span class="brand-name">Your <span class="brand-accent">Drive</span></span>
+  </a>
+  <label class="search">
+    <span class="visually-hidden">Search files and folders by name</span>
+    <input id="search" type="search" placeholder="Search by name" maxlength="200" autocomplete="off">
+  </label>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" aria-label="Places">
+    <div class="new-menu">
+      <button class="btn send" type="button" id="upload-files">Upload files</button>
+      <button class="btn ghost" type="button" id="upload-folder">Upload folder</button>
+      <button class="btn ghost" type="button" id="new-folder">New folder</button>
+      <input id="file-input" type="file" multiple hidden>
+      <input id="folder-input" type="file" webkitdirectory multiple hidden>
+    </div>
+    <div class="views">
+      <button class="view-btn" type="button" data-view="drive">My Drive</button>
+      <button class="view-btn" type="button" data-view="recent">Recent</button>
+      <button class="view-btn" type="button" data-view="starred">Starred</button>
+      <button class="view-btn" type="button" data-view="links">Share links</button>
+      <button class="view-btn" type="button" data-view="sync">Cloud sync</button>
+      <button class="view-btn" type="button" data-view="bin">Bin</button>
+    </div>
+    <div class="storage" id="storage" aria-live="polite">
+      <div class="meter" aria-hidden="true"><div class="meter-fill" id="storage-fill"></div></div>
+      <span id="storage-used"></span>
+      <span id="storage-free"></span>
+    </div>
+  </nav>
+
+  <main class="content" id="content">
+    <div class="toolbar">
+      <nav class="crumbs" id="crumbs" aria-label="Folder path"></nav>
+      <label class="visually-hidden" for="sort">Sort by</label>
+      <select class="select" id="sort">
+        <option value="name:asc">Name A to Z</option>
+        <option value="name:desc">Name Z to A</option>
+        <option value="modified:desc">Newest first</option>
+        <option value="modified:asc">Oldest first</option>
+        <option value="size:desc">Largest first</option>
+        <option value="size:asc">Smallest first</option>
+      </select>
+      <button class="btn ghost" type="button" id="layout-toggle" aria-pressed="false">Grid</button>
+      <button class="btn ghost" type="button" id="zip-folder" hidden>Download as zip</button>
+    </div>
+
+    <div id="disk-notice" class="notice error" hidden></div>
+    <div id="bin-notice" class="notice" hidden>
+      <span id="bin-text"></span>
+      <button class="btn" type="button" id="bin-empty">Empty bin</button>
+    </div>
+    <div id="links-notice" class="notice" hidden></div>
+    <div id="sync-notice" class="notice" hidden>
+      <span>Each connection keeps one Drive folder in step with a cloud folder. Deleted files go to the other side's bin, and when both sides change a file both copies are kept.</span>
+      <button class="btn send" type="button" id="sync-add">Add connection</button>
+    </div>
+    <div id="unfinished-notice" class="notice warn" hidden>
+      <span id="unfinished-text"></span>
+      <button class="btn" type="button" id="unfinished-open">See unfinished uploads</button>
+    </div>
+
+    <div id="selection-bar" class="selection-bar" hidden>
+      <span id="selection-count"></span>
+      <span class="spacer"></span>
+      <button class="btn ghost" type="button" data-bulk="move">Move</button>
+      <button class="btn ghost" type="button" data-bulk="copy">Copy</button>
+      <button class="btn ghost" type="button" data-bulk="trash">Delete</button>
+      <button class="btn ghost" type="button" data-bulk="restore">Restore</button>
+      <button class="btn" type="button" data-bulk="forever">Delete forever</button>
+      <button class="btn ghost" type="button" data-bulk="clear">Clear</button>
+    </div>
+
+    <div id="items" class="items list" role="list"></div>
+    <p id="empty-state" class="empty-state" hidden></p>
+  </main>
+</div>
+
+<dialog id="name-dialog" class="dialog">
+  <form id="name-form" class="dialog-body" method="dialog" autocomplete="off">
+    <h2 class="dialog-title" id="name-title">New folder</h2>
+    <label class="field">Name
+      <input class="input" id="name-input" maxlength="255" required>
+    </label>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close>Cancel</button>
+      <button class="btn send" type="submit" id="name-save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="picker-dialog" class="dialog">
+  <div class="dialog-body">
+    <h2 class="dialog-title" id="picker-title">Move to</h2>
+    <nav class="crumbs" id="picker-crumbs" aria-label="Folder path"></nav>
+    <div class="picker" id="picker-list"></div>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close>Cancel</button>
+      <button class="btn send" type="button" id="picker-ok">Move here</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="share-dialog" class="dialog">
+  <div class="dialog-body">
+    <h2 class="dialog-title" id="share-title">Share</h2>
+    <p id="share-off" class="notice warn" hidden>Share links are switched off on this server. They can be turned on with SHARES_ENABLED=true.</p>
+    <ul class="share-list" id="share-list"></ul>
+    <form id="share-form" class="share-form" autocomplete="off">
+      <label class="field">Link stops working
+        <select class="select" id="share-expiry">
+          <option value="">Never</option>
+          <option value="3600">In 1 hour</option>
+          <option value="86400">In 1 day</option>
+          <option value="604800" selected>In 7 days</option>
+          <option value="2592000">In 30 days</option>
+        </select>
+      </label>
+      <label class="field">Password (optional, at least 6 characters)
+        <input class="input" id="share-password" type="password" minlength="6" maxlength="200" autocomplete="new-password">
+      </label>
+      <p class="field">Anyone with the link can view and download, but not change anything.</p>
+      <div class="dialog-actions">
+        <button class="btn ghost" type="button" data-close>Close</button>
+        <button class="btn send" type="submit" id="share-create">Create link</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="unfinished-dialog" class="dialog">
+  <div class="dialog-body">
+    <h2 class="dialog-title">Unfinished uploads</h2>
+    <p class="field">To carry one on, pick the same file again in the same folder. Cancelling frees its space.</p>
+    <ul class="share-list" id="unfinished-list"></ul>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close>Close</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="convert-dialog" class="dialog">
+  <div class="dialog-body">
+    <h2 class="dialog-title" id="convert-title">Convert</h2>
+    <p class="field" id="convert-note"></p>
+    <div class="picker" id="convert-choices" role="list"></div>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close>Cancel</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="sync-dialog" class="dialog">
+  <form id="sync-form" class="dialog-body" autocomplete="off">
+    <h2 class="dialog-title">Add a cloud connection</h2>
+    <label class="field">Name
+      <input class="input" id="sync-name" maxlength="100" required placeholder="Phone photos">
+    </label>
+    <label class="field">Service
+      <select class="select" id="sync-provider">
+        <option value="google">Google Drive</option>
+        <option value="nextcloud">Nextcloud</option>
+        <option value="webdav">Other WebDAV server</option>
+      </select>
+    </label>
+    <div class="field">Drive folder
+      <div class="sync-folder-row">
+        <span id="sync-folder-path" class="sync-folder-path"></span>
+        <button class="btn ghost" type="button" id="sync-folder">Choose folder</button>
+      </div>
+    </div>
+    <label class="field">Cloud folder (made on the first upload if it is missing)
+      <input class="input" id="sync-remote" maxlength="1000" required placeholder="Photos/Phone">
+    </label>
+    <label class="field">Direction
+      <select class="select" id="sync-direction"></select>
+    </label>
+    <label class="field">How often
+      <select class="select" id="sync-interval"></select>
+    </label>
+    <p class="notice" id="sync-google-note" hidden></p>
+    <div id="sync-webdav-fields" class="sync-fields" hidden>
+      <label class="field" id="sync-url-label">WebDAV address
+        <input class="input" id="sync-url" type="url" maxlength="500" inputmode="url">
+      </label>
+      <label class="field">User name
+        <input class="input" id="sync-username" maxlength="200" autocomplete="off">
+      </label>
+      <label class="field">App password (kept encrypted on this server and never shown again)
+        <input class="input" id="sync-password" type="password" maxlength="500" autocomplete="new-password">
+      </label>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close>Cancel</button>
+      <button class="btn send" type="submit">Save connection</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="sync-preview-dialog" class="dialog">
+  <div class="dialog-body">
+    <h2 class="dialog-title" id="sync-preview-title">Preview</h2>
+    <p class="field" id="sync-preview-note"></p>
+    <ul class="share-list sync-preview-list" id="sync-preview-list"></ul>
+    <div id="sync-preview-bins"></div>
+    <div id="sync-preview-skipped"></div>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close>Close</button>
+      <button class="btn send" type="button" id="sync-preview-run">Sync now</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="sync-password-dialog" class="dialog">
+  <form id="sync-password-form" class="dialog-body" autocomplete="off">
+    <h2 class="dialog-title" id="sync-password-title">New app password</h2>
+    <label class="field">App password
+      <input class="input" id="sync-password-input" type="password" maxlength="500" required autocomplete="new-password">
+    </label>
+    <div class="dialog-actions">
+      <button class="btn ghost" type="button" data-close>Cancel</button>
+      <button class="btn send" type="submit">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="viewer" class="viewer" aria-label="Preview">
+  <div class="viewer-head">
+    <h2 class="viewer-name" id="viewer-name"></h2>
+    <a class="btn ghost" id="viewer-download" href="#">Download</a>
+    <button class="icon-btn" type="button" id="viewer-close" aria-label="Close preview"></button>
+  </div>
+  <div class="viewer-stage" id="viewer-stage"></div>
+</dialog>
+
+<div class="panels">
+<section id="conversions" class="uploads" aria-label="Conversions" hidden>
+  <div class="uploads-head">
+    <span id="conversions-title">Conversions</span>
+    <button class="btn ghost" type="button" id="conversions-clear">Clear done</button>
+  </div>
+  <ul class="upload-list" id="conversion-list"></ul>
+</section>
+<section id="uploads" class="uploads" aria-label="Uploads" hidden>
+  <div class="uploads-head">
+    <span id="uploads-title">Uploads</span>
+    <button class="btn ghost" type="button" id="uploads-clear">Clear done</button>
+  </div>
+  <ul class="upload-list" id="upload-list"></ul>
+</section>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

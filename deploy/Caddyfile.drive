@@ -1,0 +1,49 @@
+http://__SITE_HOST__ {
+	request_header -X-Forwarded-User
+	request_header -X-Drive-Proxy-Secret
+	request_body {
+		max_size 9MB
+	}
+	handle_path /signin/* {
+		root * /srv/signin/drive
+		header Cache-Control "no-cache"
+		header X-Content-Type-Options nosniff
+		header X-Frame-Options DENY
+		header Referrer-Policy same-origin
+		file_server
+	}
+	@sign_in_api path /api/auth/login
+	handle @sign_in_api {
+		reverse_proxy 127.0.0.1:8090
+	}
+	@share_link path /s/*
+	handle @share_link {
+		reverse_proxy __UPSTREAM__ {
+			header_up -Authorization
+		}
+	}
+	@signed_out {
+		not header Cookie *starfire_session=*
+		not path /signin/* /api/auth/login /s/*
+	}
+	redir @signed_out /signin/ 303
+	handle {
+		forward_auth 127.0.0.1:8090 {
+			uri /api/auth/users
+			header_up -Upgrade
+			header_up -Connection
+			@session_rejected status 401
+			handle_response @session_rejected {
+				redir * /signin/ 303
+			}
+			@not_admin status 403
+			handle_response @not_admin {
+				respond "Drive is for the admin account only." 403
+			}
+		}
+		reverse_proxy __UPSTREAM__ {
+			header_up X-Forwarded-User __SIGNED_IN_USER__
+			header_up X-Drive-Proxy-Secret __PROXY_SECRET__
+		}
+	}
+}

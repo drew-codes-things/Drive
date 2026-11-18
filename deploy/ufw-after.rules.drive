@@ -1,0 +1,1 @@
+-A DOCKER-USER -p tcp -m conntrack --ctorigdstport __HOST_PORT__ --ctdir ORIGINAL ! -s __PROXY_ADDRESS__ -j DROP
