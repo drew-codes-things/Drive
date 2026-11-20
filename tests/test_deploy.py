@@ -509,3 +509,48 @@ def test_the_caddy_refusal_names_starfire_drive():
 
 def test_the_sign_in_page_is_built_as_starfire_drive():
     assert "--first Starfire --second Drive --tagline" in (REPO / "deploy.sh").read_text()
+
+
+def test_an_existing_block_gets_the_current_refusal_and_nothing_else_changes(tmp_path, stubs):
+    script = side_script(tmp_path, "proxy")
+    caddyfile = tmp_path / "Caddyfile"
+    old_refusal = 'respond "Drive is for the admin account only." 403'
+    other_site = f"http://other.example.com {{\n\t{old_refusal}\n}}\n"
+    caddyfile.write_text(CADDYFILE + "\n" + other_site)
+    env = {**stubs, "CADDYFILE": str(caddyfile), "CADDY_LOCK": str(tmp_path / "lock"), "STATE": str(tmp_path),
+           "SECRET_FILE": str(secret_file(tmp_path))}
+    assert run(script, env, "add-site", str(pushed_block(tmp_path))).returncode == 0
+    current = caddyfile.read_text()
+    marked = current.index("# >>> drive block")
+    caddyfile.write_text(current[:marked] + current[marked:].replace(
+        'respond "Starfire Drive is for the admin account only." 403', old_refusal))
+    stubs["log"].write_text("")
+    answer = run(script, env, "add-site", str(pushed_block(tmp_path)))
+    assert answer.returncode == 0, answer.stdout + answer.stderr
+    assert caddyfile.read_text() == current
+    assert caddyfile.read_text().count(old_refusal) == 1
+    assert "systemctl reload caddy" in stubs["log"].read_text()
+    assert any(old_refusal in backup.read_text()[backup.read_text().index("# >>> drive block"):]
+               for backup in tmp_path.glob("Caddyfile.bak-drive-*"))
+    assert not (tmp_path / "lock").exists()
+    stubs["log"].write_text("")
+    assert run(script, env, "add-site", str(pushed_block(tmp_path))).returncode == 0
+    assert caddyfile.read_text() == current
+    assert "systemctl reload caddy" not in stubs["log"].read_text()
+
+
+def test_a_refusal_that_does_not_validate_leaves_the_existing_block_alone(tmp_path, stubs):
+    script = side_script(tmp_path, "proxy")
+    caddyfile = tmp_path / "Caddyfile"
+    caddyfile.write_text(CADDYFILE)
+    env = {**stubs, "CADDYFILE": str(caddyfile), "CADDY_LOCK": str(tmp_path / "lock"), "STATE": str(tmp_path),
+           "SECRET_FILE": str(secret_file(tmp_path))}
+    assert run(script, env, "add-site", str(pushed_block(tmp_path))).returncode == 0
+    before = caddyfile.read_text()
+    broken = pushed_block(tmp_path)
+    broken.write_text(broken.read_text().replace("Starfire Drive is", "BROKEN Drive is"))
+    stubs["log"].write_text("")
+    assert run(script, env, "add-site", str(broken)).returncode != 0
+    assert caddyfile.read_text() == before
+    assert "systemctl reload caddy" not in stubs["log"].read_text()
+    assert not (tmp_path / "lock").exists()

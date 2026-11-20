@@ -31,6 +31,7 @@ to the server, see the README.
                   marked ufw rule that only lets the proxy reach the port,
                   `docker compose up -d --build`, health;
                   proxy: sign-in page and the marked Caddy block, validated before reload
+                  (an existing block is kept, only its 403 text is brought up to date)
   check           container, health, ufw rule, Caddy answers (303 without a session, the /s/ path
                   reaches the app), the other sites still answer
   undo            remove the Caddy block, stop the container and put the earlier code back behind
@@ -380,6 +381,7 @@ SECRET_FILE="${SECRET_FILE:-/etc/caddy/drive-proxy-secret}"
 SITE_HOST=__SITE_HOST__
 BLOCK_BEGIN="# >>> drive block, added and removed by the drive deploy.sh"
 BLOCK_END="# <<< drive block"
+REFUSAL_PATTERN='^[[:space:]]*respond ".*" 403$'
 SHARE_PROBE="/s/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/info"
 
 block_state() {
@@ -449,12 +451,41 @@ switch_caddyfile() {
   echo "caddy: reloaded (earlier file $backup)"
 }
 
+caddyfile_with_refusal() {
+  REFUSAL="$1" awk -v begin="$BLOCK_BEGIN" -v end="$BLOCK_END" -v pattern="$REFUSAL_PATTERN" '
+    $0 == begin { inside = 1 }
+    $0 == end { inside = 0 }
+    inside && $0 ~ pattern { print ENVIRON["REFUSAL"]; next }
+    { print }
+  ' "$CADDYFILE"
+}
+
+update_refusal() {
+  local template="$1" refusal next status=0
+  refusal="$(grep -m 1 -E -- "$REFUSAL_PATTERN" <<< "$template" || true)"
+  [ -n "$refusal" ] || { echo "caddy: the drive block is already there"; return 0; }
+  take_caddy_lock
+  next="$(mktemp)"
+  if ! caddyfile_with_refusal "$refusal" > "$next"; then
+    rm -f "$next"; rmdir "$CADDY_LOCK"; return 1
+  fi
+  if cmp -s "$next" "$CADDYFILE"; then
+    echo "caddy: the drive block is already there with the current 403 text"
+  else
+    echo "caddy: the drive block is already there; bringing its 403 text up to date"
+    switch_caddyfile "$next" || status=$?
+  fi
+  rm -f "$next"
+  rmdir "$CADDY_LOCK"
+  return "$status"
+}
+
 add_site() {
   local source="$1" template next status=0
   template="$(cat "$source")" || { echo "refusing: cannot read the Caddy block $source"; return 1; }
   rm -f "$source"
   case "$(block_state)" in
-    one) echo "caddy: the drive block is already there"; return 0 ;;
+    one) update_refusal "$template"; return ;;
     damaged) echo "caddy: the drive markers are damaged; fix them by hand"; return 1 ;;
   esac
   if grep -qF "http://$SITE_HOST {" "$CADDYFILE"; then echo "caddy: an unmarked $SITE_HOST block exists; left as is"; return 1; fi

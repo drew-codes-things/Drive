@@ -611,8 +611,8 @@ the core container gets a `PROXY_SECRET` in `/etc/drive/drive.env`; it is piped
 straight to the proxy container (`/etc/caddy/drive-proxy-secret`, mode 600) and written into the
 Caddy block, never printed. The Caddy block then holds the secret, so keep
 the Caddyfile readable by root and Caddy only. An existing Caddy block is
-left as is, so after changing the secret remove the block (`undo`) and apply
-again.
+left as is apart from its 403 text, which `apply` brings up to date, so after
+changing the secret remove the block (`undo`) and apply again.
 
 For Google Drive sync, `./deploy.sh google` asks on the laptop for the OAuth
 client ID and secret (the secret is not echoed), sends them over ssh to the
