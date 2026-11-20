@@ -500,3 +500,12 @@ def test_apply_pushes_a_code_bundle_with_the_site_values_filled_in(tmp_path):
     assert block == fill_in(committed_block)
     assert leftover_placeholders(block) == set() and "__UPSTREAM__" in block
     assert "pct exec 4100 -- bash /root/drive-deploy-core.sh apply /root/drive-code.tgz" in log.read_text()
+
+
+def test_the_caddy_refusal_names_starfire_drive():
+    block = (REPO / "deploy" / "Caddyfile.drive").read_text()
+    assert 'respond "Starfire Drive is for the admin account only." 403' in block
+
+
+def test_the_sign_in_page_is_built_as_starfire_drive():
+    assert "--first Starfire --second Drive --tagline" in (REPO / "deploy.sh").read_text()

@@ -8,6 +8,13 @@ from drive.auth import PROXY_SECRET_HEADER
 from drive.web import TEXT_PREVIEW_BYTES
 
 
+def test_the_page_is_named_starfire_drive(owner):
+    page = owner.get("/").get_data(as_text=True)
+    assert "<title>Starfire Drive</title>" in page
+    assert 'aria-label="Starfire Drive home"' in page
+    assert 'Starfire <span class="brand-accent">Drive</span>' in page
+
+
 def test_health_is_open_and_everything_else_needs_the_proxy_user(client):
     assert client.get("/api/health").get_json() == {"ok": True}
     assert client.get("/api/folders/0").status_code == 401

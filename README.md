@@ -1,6 +1,6 @@
 <div align="center">
 
-# Drive
+# Starfire Drive
 
 **Your own free take on Google Drive. Folders and files, big uploads that resume, previews, a bin, stars, recent files, folder zips and share links you control, all on your own disk.**
 
@@ -11,13 +11,13 @@
 
 </div>
 
-![Drive showing a folder with files, sizes and dates, the upload buttons and the storage meter](screenshot.png)
+![Starfire Drive showing a folder with files, sizes and dates, the upload buttons and the storage meter](screenshot.png)
 
 ---
 
 ## Overview
 
-Drive is a small self-hosted web app for your files. It has its own
+Starfire Drive is a small self-hosted web app for your files. It has its own
 sign-in for one owner account, so a copy runs on its own. It can also sit
 behind a sign-in proxy: the author runs it behind the starfire sign-in like
 the other apps, where Caddy checks the sign-in, then passes the request on.
@@ -98,7 +98,7 @@ laptop drops under 30 GB free. Stop it with Ctrl+C; there is no service.
 
 ## First run and sign-in
 
-Drive has its own sign-in, switched on by default (`AUTH_MODE=builtin`).
+Starfire Drive has its own sign-in, switched on by default (`AUTH_MODE=builtin`).
 There is one owner account and no sign-up page.
 
 1. Start it (`.venv/bin/python -m drive`) and open
@@ -554,7 +554,7 @@ older version of Drive kept only in part gets `409`, asking for Sync now),
 
 ## Moving it to the server
 
-On the server Drive trusts the gate instead of its own sign-in:
+On the server Starfire Drive trusts the gate instead of its own sign-in:
 `deploy/drive.env` sets `AUTH_MODE=proxy` and `TRUSTED_PROXIES` to the
 proxy container's address.
 
@@ -576,9 +576,9 @@ to run without them:
 | `PROXY_CT` | The container that runs Caddy. |
 | `DRIVE_DATA` | The data folder in the core container, mounted at `/data`. |
 | `CORE_ADDRESS` | The core container's LAN address; the port is published only there. |
-| `HOST_PORT` | The port Drive is published on. |
+| `HOST_PORT` | The port Starfire Drive is published on. |
 | `PROXY_ADDRESS` | The proxy container's address: the only one let through to the port, and `TRUSTED_PROXIES`. |
-| `SITE_HOST` | The host name Drive is served on, like `drive.example.com`. |
+| `SITE_HOST` | The host name Starfire Drive is served on, like `drive.example.com`. |
 | `SITE_DOMAIN` | The domain the other sites live under, for `check`. |
 | `OTHER_SITE_NAMES` | The other sites `check` asks for, separated by spaces, like `keep tasks`. |
 | `SIGNED_IN_USER` | The starfire admin account name; Caddy passes it on and it becomes `ALLOWED_USERS`. |

@@ -25,7 +25,7 @@ from .web_sync import add_sync_routes
 from .zipstream import check_zip_size, stream_zip
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-APP_NAME = "Drive"
+APP_NAME = "Starfire Drive"
 MAX_REQUEST_BYTES = CHUNK_BYTES + 64 * 1024
 TEXT_PREVIEW_BYTES = 512 * 1024
 THUMB_RETRY_AFTER_SECONDS = 1

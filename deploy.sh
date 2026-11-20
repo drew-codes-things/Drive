@@ -573,7 +573,7 @@ in_proxy() {
 build_signin_bundle() {
   local work="$1"
   [ -f "$SITE_SIGNIN/build.py" ] || { echo "refusing: no site-signin builder at $SITE_SIGNIN (set SITE_SIGNIN)"; exit 1; }
-  python3 "$SITE_SIGNIN/build.py" --first Your --second Drive --tagline "Sign in to reach your files." \
+  python3 "$SITE_SIGNIN/build.py" --first Starfire --second Drive --tagline "Sign in to reach your files." \
     --icon "$REPO/drive/static/icon.svg" --out "$work/signin"
   tar -czf "$work/signin.tgz" -C "$work/signin" .
 }
