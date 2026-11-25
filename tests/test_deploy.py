@@ -504,7 +504,7 @@ def test_apply_pushes_a_code_bundle_with_the_site_values_filled_in(tmp_path):
 
 def test_the_caddy_refusal_names_starfire_drive():
     block = (REPO / "deploy" / "Caddyfile.drive").read_text()
-    assert 'respond "Starfire Drive is for the admin account only." 403' in block
+    assert 'respond "Starfire Drive is only for the admin account, so this account cannot open it. Sign in with the admin account instead, or ask the admin for what you need." 403' in block
 
 
 def test_the_sign_in_page_is_built_as_starfire_drive():
@@ -523,7 +523,7 @@ def test_an_existing_block_gets_the_current_refusal_and_nothing_else_changes(tmp
     current = caddyfile.read_text()
     marked = current.index("# >>> drive block")
     caddyfile.write_text(current[:marked] + current[marked:].replace(
-        'respond "Starfire Drive is for the admin account only." 403', old_refusal))
+        'respond "Starfire Drive is only for the admin account, so this account cannot open it. Sign in with the admin account instead, or ask the admin for what you need." 403', old_refusal))
     stubs["log"].write_text("")
     answer = run(script, env, "add-site", str(pushed_block(tmp_path)))
     assert answer.returncode == 0, answer.stdout + answer.stderr
@@ -554,3 +554,11 @@ def test_a_refusal_that_does_not_validate_leaves_the_existing_block_alone(tmp_pa
     assert caddyfile.read_text() == before
     assert "systemctl reload caddy" not in stubs["log"].read_text()
     assert not (tmp_path / "lock").exists()
+
+
+def test_the_caddy_refusal_says_who_the_app_is_for_and_what_to_do_instead():
+    refusal = re.search(r'respond "([^"]+)" 403', (REPO / "deploy" / "Caddyfile.drive").read_text()).group(1)
+    assert refusal.startswith("Starfire Drive is only for the admin account")
+    assert "Sign in with the admin account instead" in refusal
+    assert "ask the admin" in refusal
+    assert len(refusal) < 200
