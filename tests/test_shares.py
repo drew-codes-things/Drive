@@ -267,6 +267,8 @@ def test_shared_previews_keep_the_safe_headers(owner, anonymous, tree):
 def test_share_assets_are_an_allow_list(anonymous):
     assert anonymous.get("/s/static/share.js").status_code == 200
     assert anonymous.get("/s/static/app.css").status_code == 200
+    assert anonymous.get("/s/static/icon.svg").status_code == 200
+    assert anonymous.get("/s/static/icon-small.svg").status_code == 200
     assert anonymous.get("/s/static/fonts/ibm-plex-sans-latin-400-normal.woff2").status_code == 200
     assert anonymous.get("/s/static/app.js").status_code == 404
 

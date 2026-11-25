@@ -34,7 +34,7 @@ SAFE_METHODS = ("GET", "HEAD", "OPTIONS")
 PUBLIC_PATHS = ("/api/health",)
 SHARE_PREFIX = "/s/"
 UNLOCK_COOKIE = "drive_share"
-SHARE_ASSETS = frozenset({"app.css", "share.js", "icon.svg", "fonts/ibm-plex-sans-latin-400-normal.woff2",
+SHARE_ASSETS = frozenset({"app.css", "share.js", "icon.svg", "icon-small.svg", "fonts/ibm-plex-sans-latin-400-normal.woff2",
                           "fonts/ibm-plex-sans-latin-500-normal.woff2", "fonts/ibm-plex-sans-latin-600-normal.woff2",
                           "fonts/ibm-plex-mono-latin-400-normal.woff2"})
 PUBLIC_NODE_FIELDS = ("id", "name", "kind", "size", "preview", "modifiedAt")
